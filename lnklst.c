@@ -7,6 +7,7 @@
 */
 	#include    <stddef.h>
 	#include    <stdlib.h>
+	#include    <stdbool.h>
 	#include    <assert.h>
 
 //********************************************************************************************************
@@ -168,6 +169,61 @@ void lnklst_destroy(struct lnklst_struct *lst)
         //free the list itself
         free(lst);
 	};
+}
+
+//re-link the list to sort the allocations in an order determined by swapfunc()
+void lnklst_sort(struct lnklst_struct *lst, bool(*swapfunc)(void*, void*))
+{
+	struct lnklst_struct    *x;         //points to the header that points at y
+	struct lnklst_struct    *y;         //points to the 1st comparison header that also points at z
+	struct lnklst_struct    *z;         //points to the 2nd comparison header
+    bool                    finished=false;
+    bool                    swapped=false;
+
+    assert(lst);
+    assert(swapfunc);
+
+    x = lst;
+    if(x->prior)
+    {
+        while(!finished)
+        {
+            //start of list
+            x = lst;
+            y = x->prior;
+            z = y->prior;
+            swapped=false;
+
+            //walk the list
+            while(z)
+            {
+                //swap nodes?
+                if(swapfunc(&y->allocation, &z->allocation))
+                {
+                    //currently:
+                    //x->prior points at y
+                    //y->prior points at z
+                    //z->prior points at whatever
+                    // to swap y and z:
+                    x->prior = z;           //x->prior now points to z (instead of y)
+                    y->prior = z->prior;    //y->prior now points at whatever (instead of z->prior pointing at whatever)
+                    z->prior = y;           //z->prior now points at y (instead of y->prior pointing at z)
+
+                    //because y and z were swapped in the list, restore x->y->z order using x
+                    y = x->prior;
+                    z = y->prior;
+                    swapped=true;   //sort may not be finished
+                };
+                //step
+                x = y;
+                y = z;
+                z = z->prior;
+            };
+            //if no swapping occured on this pass, bubble sort is finished
+            if(!swapped)
+                finished=true;
+        };
+    };
 }
 
 //********************************************************************************************************

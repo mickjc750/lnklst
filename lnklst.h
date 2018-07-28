@@ -1,6 +1,6 @@
 /*
 	A simple linked list
-	
+
 	Use in a similar fashion to malloc/free
 	All allocations are added to, or freed from the linked list specified.
 
@@ -33,9 +33,13 @@
 
 //	return the last (most recent) allocation in the list
 	void* lnklst_last(struct lnklst_struct *lst);
-	
+
 //	return the allocation made prior to *allocation if there was one (or NULL)
 	void* lnklst_prior(struct lnklst_struct *lst, void *allocation);
 
 //	free all allocations in the list, and the list itself
 	void lnklst_destroy(struct lnklst_struct *lst);
+
+//  re-link the list to sort the allocations in an order determined by swapfunc()
+//  swapfunc(arg1, arg2) should return true if allocations need swapping for arg1 to be closest to the head
+    void lnklst_sort(struct lnklst_struct *lst, bool(*swapfunc)(void*, void*));

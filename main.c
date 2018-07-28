@@ -2,9 +2,12 @@
     #include <stdio.h>
     #include <stdlib.h>
     #include <string.h>
+    #include <stdbool.h>
+
     #include "lnklst.h"
 
     static void show_list(struct lnklst_struct *lst);
+    static bool alphaorder(void* a, void* b);
 
 int main()
 {
@@ -13,6 +16,8 @@ int main()
 
     //Create a new list
     mylist = lnklst_create();
+
+    printf("\r\nAdding strings\r\n");
 
     //Add various strings
     banana = lnklst_allocate(mylist, strlen("BANANA")+1);
@@ -30,8 +35,14 @@ int main()
     mandarin = lnklst_allocate(mylist, strlen("MANDARIN")+1);
     strcpy(mandarin, "MANDARIN");
 
-    //show list and remove items in some arbitrary order
     show_list(mylist);
+
+    printf("\r\nSorting list\r\n");
+    lnklst_sort(mylist, alphaorder);
+    show_list(mylist);
+    //show list and remove items in some arbitrary order
+
+    printf("\r\nRemoving strings\r\n");
     lnklst_free(mylist, grape);
     show_list(mylist);
     lnklst_free(mylist, orange);
@@ -60,4 +71,12 @@ static void show_list(struct lnklst_struct *lst)
         text = lnklst_prior(lst, text);
     };
     printf("\r\n");
+}
+
+static bool alphaorder(void* a, void* b)
+{
+    bool retval=false;
+    if(strcmp((char*)a,(char*)b)>0)
+        retval=true;
+    return retval;
 }
