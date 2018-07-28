@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1532751736 source:d:\micksprojects\source\lnklst\lnklst.c
+	<stddef.h>
+	<stdlib.h>
+	<assert.h>
+
