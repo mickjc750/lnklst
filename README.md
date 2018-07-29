@@ -1,2 +1,3 @@
 # lnklst
-Singularly linked list implementation
+Doubly linked list
+
