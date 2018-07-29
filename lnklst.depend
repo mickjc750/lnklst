@@ -4,18 +4,20 @@
 	<stdlib.h>
 	<assert.h>
 
-1532821820 source:d:\repos\lnklst\lnklst.c
+1532845488 source:d:\repos\lnklst\lnklst.c
 	<stddef.h>
 	<stdlib.h>
 	<stdbool.h>
+	<stdint.h>
 	<assert.h>
 
-1532821682 source:d:\repos\lnklst\main.c
+1532845417 source:d:\repos\lnklst\main.c
 	<stdio.h>
 	<stdlib.h>
+	<stdint.h>
 	<string.h>
 	<stdbool.h>
 	"lnklst.h"
 
-1532821820 d:\repos\lnklst\lnklst.h
+1532845310 d:\repos\lnklst\lnklst.h
 

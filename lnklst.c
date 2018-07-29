@@ -8,6 +8,7 @@
 	#include    <stddef.h>
 	#include    <stdlib.h>
 	#include    <stdbool.h>
+	#include    <stdint.h>
 	#include    <assert.h>
 
 //********************************************************************************************************
@@ -19,10 +20,18 @@
 //********************************************************************************************************
 
 	//serves as a header for allocations, hiding the link in memory before them
+	struct header_struct
+	{
+		struct header_struct 	*before;		//NULL or the address of the header of the allocation made before this one
+		struct header_struct    *after;         //NULL or the address of the header of the allocation made after this one
+		void					*allocation[];	//does not add to the size of this structure, only addresses memory after the *before member
+	};
+
+    //holds the head, and a counter
 	struct lnklst_struct
 	{
-		struct lnklst_struct 	*prior;			//NULL or the address of the header of the previous allocation
-		void					*allocation[];	//does not add to the size of this structure, only addresses memory after the *prior member
+	    struct header_struct    head;
+	    uint32_t                count;
 	};
 
 //********************************************************************************************************
@@ -49,27 +58,33 @@ struct lnklst_struct* lnklst_create(void)
 	retval = malloc(sizeof(struct lnklst_struct));
 	assert(retval);
 
-	retval->prior = NULL;
+	retval->head.before = NULL;
+	retval->head.after  = NULL;
+    retval->count        = 0;
 
 	return retval;
 }
 
-
 //	allocate memory on the heap, and add it to the list
 void* lnklst_allocate(struct lnklst_struct *lst, size_t size)
 {
-	struct lnklst_struct 	*new_entry;
+	struct header_struct 	*new_entry;
 
 	//error if there is no list
 	assert(lst);
 
 	//allocate new entry
-	new_entry = malloc(sizeof(struct lnklst_struct) + size);
+	new_entry = malloc(sizeof(struct header_struct) + size);
 	assert(new_entry);
 
 	//add new entry to list
-	new_entry->prior = lst->prior;
-	lst->prior = new_entry;
+	new_entry->before = lst->head.before;
+	lst->head.before = new_entry;
+	new_entry->after = &lst->head;
+	if(new_entry->before)
+        new_entry->before->after = new_entry;
+
+    lst->count++;
 
 	//return address of allocation
 	return &new_entry->allocation;
@@ -78,44 +93,24 @@ void* lnklst_allocate(struct lnklst_struct *lst, size_t size)
 //	remove an allocation from the list and free it from the heap
 void lnklst_free(struct lnklst_struct *lst, void* allocation)
 {
-	struct lnklst_struct  *target;
-	struct lnklst_struct  *next;
+	struct header_struct  *target;
 
     //error if there is no list
 	assert(lst);
 
-	//start at the head
-	next   = lst;
-	target = lst->prior;
+    //access allocations header by decrementing a header ptr
+	target = allocation;
+	target--;
 
-	//while target still points at a header
-	while(target)
-	{
-		//if that header is for the allocation we want to remove
-		if(&target->allocation == allocation)
-		{
-			//modify the header which points to the target, to point to the targets prior entry, to remove the target from the list
-			next->prior = target->prior;
-			target = NULL;		// stop search
-			next = NULL;		// indicate that target was removed
-		}
-		else
-		{
-			//else try the previous header
-			next 	= target;
-			target 	= target->prior;
-		};
-	};
+	//change the *before link in the header after this one, from this header to this headers *before link
+	target->after->before = target->before;
+	//if there was a header before this one
+	if(target->before)
+        //change the *after link in the header before this one, from this header to this headers *after link
+        target->before->after = target->after;
 
-	//if the allocation was removed from the list (maybe we didn't find it)
-	if(!next)
-	{
-		//access the allocations header, by decrementing a header ptr
-		next = allocation;
-		next--;
-		//free allocation and it's header from the heap
-		free(next);
-	};
+    lst->count--;
+	free(target);
 }
 
 //	return the last (most recent) allocation in the list
@@ -124,17 +119,17 @@ void* lnklst_last(struct lnklst_struct *lst)
 	void *retval=NULL;
 
 	assert(lst);
-	if(lst->prior)
-		retval = &lst->prior->allocation;
+	if(lst->count)
+		retval = &lst->head.before->allocation;
 
 	return retval;
 }
 
-//	return the allocation made prior to *allocation if there was one (else return NULL)
-void* lnklst_prior(struct lnklst_struct *lst, void *allocation)
+//	return the allocation made before *allocation if there was one (else return NULL)
+void* lnklst_before(struct lnklst_struct *lst, void *allocation)
 {
 	void				  *retval=NULL;
-	struct lnklst_struct  *header;
+	struct header_struct  *header;
 
     assert(lst);
 
@@ -142,9 +137,9 @@ void* lnklst_prior(struct lnklst_struct *lst, void *allocation)
 	{
 		header = allocation;	//access the allocations header
 		header--;
-		if(header->prior)		//if there was a prior allocation
+		if(header->before)		//if there was an allocation before this one
 		{
-			header = header->prior;			//point to it
+			header = header->before;		//point to it
 			retval = &header->allocation;	//and return it's allocation
 		};
 	};
@@ -152,21 +147,43 @@ void* lnklst_prior(struct lnklst_struct *lst, void *allocation)
 	return retval;
 }
 
-//	free all entries in the list, and free the list itself
+//	return the allocation made after *allocation if there was one (else return NULL)
+void* lnklst_after(struct lnklst_struct *lst, void *allocation)
+{
+	void				  *retval=NULL;
+	struct header_struct  *header;
+
+    assert(lst);
+
+	if(allocation)
+	{
+		header = allocation;	//access the allocations header
+		header--;
+		if(header->after && (header->after != &lst->head))	    //if there was an allocation after this one
+		{
+			header = header->after;		    //point to it
+			retval = &header->allocation;	//and return it's allocation
+		};
+	};
+
+	return retval;
+}
+
+// free all entries in the list, and free the list itself
 void lnklst_destroy(struct lnklst_struct *lst)
 {
-	struct lnklst_struct  *hop;
+	struct header_struct  *hop;
 
 	if(lst)
 	{
-		//while the head still points at something
-		while(lst->prior)
+		// while the head still points at something
+		while(lst->head.before)
 		{
-			hop = lst->prior->prior;
-			free(lst->prior);
-			lst->prior = hop;
+			hop = lst->head.before->before;
+			free(lst->head.before);
+			lst->head.before = hop;
 		};
-        //free the list itself
+        // free the list itself
         free(lst);
 	};
 }
@@ -174,56 +191,78 @@ void lnklst_destroy(struct lnklst_struct *lst)
 //re-link the list to sort the allocations in an order determined by swapfunc()
 void lnklst_sort(struct lnklst_struct *lst, bool(*swapfunc)(void*, void*))
 {
-	struct lnklst_struct    *x;         //points to the header that points at y
-	struct lnklst_struct    *y;         //points to the 1st comparison header that also points at z
-	struct lnklst_struct    *z;         //points to the 2nd comparison header
+	struct header_struct    *x;
+	struct header_struct    *y;
     bool                    finished=false;
     bool                    swapped=false;
 
     assert(lst);
     assert(swapfunc);
 
-    x = lst;
-    if(x->prior)
+    if(lst->count >1)
     {
         while(!finished)
         {
             //start of list
-            x = lst;
-            y = x->prior;
-            z = y->prior;
-            swapped=false;
+            x = lst->head.before;
+            y = x->before;
+            swapped = false;
 
             //walk the list
-            while(z)
+            while(y)
             {
                 //swap nodes?
-                if(swapfunc(&y->allocation, &z->allocation))
+                if(swapfunc(&x->allocation, &y->allocation))
                 {
-                    //currently:
-                    //x->prior points at y
-                    //y->prior points at z
-                    //z->prior points at whatever
-                    // to swap y and z:
-                    x->prior = z;           //x->prior now points to z (instead of y)
-                    y->prior = z->prior;    //y->prior now points at whatever (instead of z->prior pointing at whatever)
-                    z->prior = y;           //z->prior now points at y (instead of y->prior pointing at z)
+                    //swap the outter links
+                    if(y->before)
+                        y->before->after = x;   //(was y)
+                    x->after->before = y;       //(was x)
 
-                    //because y and z were swapped in the list, restore x->y->z order using x
-                    y = x->prior;
-                    z = y->prior;
-                    swapped=true;   //sort may not be finished
+                    //swap the inner links
+                    y->after  = x->after;
+                    x->before = y->before;
+                    y->before = x;
+                    x->after  = y;
+
+                    //swap the x-y to restore head -> x -> y ->end order
+                    x = x->after;
+                    y = y->before;
+                    swapped = true;   //sort may not be finished
                 };
                 //step
                 x = y;
-                y = z;
-                z = z->prior;
+                y = y->before;
             };
             //if no swapping occured on this pass, bubble sort is finished
             if(!swapped)
                 finished=true;
         };
     };
+}
+
+uint32_t lnklst_count(struct lnklst_struct *lst)
+{
+    assert(lst);
+    return lst->count;
+}
+
+//  return allocation referenced by index 0-N where 0=the last (most recent) allocation in the list
+void* lnklst_index(struct lnklst_struct *lst, uint32_t index)
+{
+ 	struct header_struct    *x;
+    void* retval=NULL;
+
+    assert(lst);
+    if(index < lst->count)
+    {
+        x = lst->head.before;
+        while(index--)
+            x = x->before;
+        retval = &x->allocation;
+    };
+
+    return retval;
 }
 
 //********************************************************************************************************
