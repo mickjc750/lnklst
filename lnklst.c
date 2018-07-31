@@ -1,5 +1,5 @@
 /*
-    Simple singularly linked list by Michael Clift.
+    Simple doubly linked list by Michael Clift.
 
     Credit to Charles Lehner who authored a similar implementation called ll.c here:
     https://github.com/clehner/ll.c
