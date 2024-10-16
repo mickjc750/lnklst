@@ -150,7 +150,6 @@
 // Public functions
 //********************************************************************************************************
 
-//	return a pointer to a new linked list, with head=NULL
 struct lnklst_struct* lnklst_create(void)
 {
 	struct lnklst_struct *retval;
@@ -166,7 +165,6 @@ struct lnklst_struct* lnklst_create(void)
 	return retval;
 }
 
-//	allocate memory, and add it to the list
 void* lnklst_allocate(struct lnklst_struct *lst, size_t size)
 {
 	struct header_struct *new_entry;
@@ -193,7 +191,6 @@ void* lnklst_allocate(struct lnklst_struct *lst, size_t size)
 	return retval;
 }
 
-//	remove an allocation from the list and free it
 void lnklst_free(struct lnklst_struct *lst, void* allocation)
 {
 	struct header_struct  *target;
@@ -216,7 +213,6 @@ void lnklst_free(struct lnklst_struct *lst, void* allocation)
 	};
 }
 
-//	return the last (most recent) allocation in the list, or NULL if there is none
 void* lnklst_last(struct lnklst_struct *lst)
 {
 	void *retval=NULL;
@@ -232,7 +228,6 @@ void* lnklst_last(struct lnklst_struct *lst)
 	return retval;
 }
 
-//	return the first (oldest) allocation in the list, or NULL if there is none
 void* lnklst_first(struct lnklst_struct *lst)
 {
  	struct header_struct *x;
@@ -256,7 +251,6 @@ void* lnklst_first(struct lnklst_struct *lst)
     return retval;
 }
 
-//	return the allocation made before *allocation if there was one (else return NULL)
 void* lnklst_before(struct lnklst_struct *lst, void *allocation)
 {
 	void				  *retval=NULL;
@@ -278,7 +272,6 @@ void* lnklst_before(struct lnklst_struct *lst, void *allocation)
 	return retval;
 }
 
-//	return the allocation made after *allocation if there was one (else return NULL)
 void* lnklst_after(struct lnklst_struct *lst, void *allocation)
 {
 	void				  *retval=NULL;
@@ -300,7 +293,6 @@ void* lnklst_after(struct lnklst_struct *lst, void *allocation)
 	return retval;
 }
 
-// free all entries in the list, and the list itself, nulls the pointer to the list.
 void lnklst_destroy(struct lnklst_struct **lst)
 {
 	struct header_struct  *hop;
@@ -323,7 +315,6 @@ void lnklst_destroy(struct lnklst_struct **lst)
 	};
 }
 
-//re-link the list to sort the allocations in an order determined by swapfunc()
 void lnklst_sort(struct lnklst_struct *lst, int(*swapfunc)(void*, void*))
 {
     if(lst && swapfunc)
@@ -347,7 +338,6 @@ int lnklst_count(struct lnklst_struct *lst)
     return retval;
 }
 
-//  return allocation referenced by index 0-N where 0=the last (most recent) allocation in the list
 void* lnklst_index(struct lnklst_struct *lst, int index)
 {
  	struct header_struct *x;
@@ -370,7 +360,6 @@ void* lnklst_index(struct lnklst_struct *lst, int index)
     return retval;
 }
 
-//re-link the list to sort the allocations in an order determined by swapfunc()
 static void sort_list(struct lnklst_struct *lst, int(*swapfunc)(void*, void*))
 {
 	struct header_struct *x;
