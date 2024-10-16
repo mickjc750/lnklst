@@ -117,9 +117,9 @@
 	//serves as a header for allocations, hiding the link in memory before them
 	struct header_struct
 	{
-		struct header_struct 	*before;		//NULL or the address of the header of the allocation made before this one
-		struct header_struct    *after;         //NULL or the address of the header of the allocation made after this one
-		void					*allocation[];	//does not add to the size of this structure, only addresses memory after the *after member
+		struct header_struct *before;	//NULL or the address of the header of the allocation made before this one
+		struct header_struct *after;	//NULL or the address of the header of the allocation made after this one
+		uint8_t	allocation[0] __attribute__((aligned));	//does not add to the size of this structure, only addresses memory after the *after member
 	};
 
     //holds the head, and a counter
