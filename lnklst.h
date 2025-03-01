@@ -6,8 +6,9 @@
 	Eg.
 
 		#include <stdlib.h>
-		#define lnklst_platform_alloc(sz)	malloc(sz)
-		#define lnklst_platform_free(arg)	free(ptr)
+		#define lnklst_platform_alloc(sz)			malloc(sz)
+		#define lnklst_platform_realloc(ptr, sz)	realloc(ptr, sz)
+		#define lnklst_platform_free(arg)			free(ptr)
 		#define LNKLST_IMPLEMENTATION
 		#include "lnklst.h"
 
@@ -17,8 +18,9 @@
 	Eg.
 
 		#include <stdlib.h>
-		#define lnklst_platform_alloc(sz)	malloc(sz)
-		#define lnklst_platform_free(arg)	free(ptr)
+		#define lnklst_platform_alloc(sz)			malloc(sz)
+		#define lnklst_platform_realloc(ptr, sz)	realloc(ptr, sz)
+		#define lnklst_platform_free(arg)			free(ptr)
 
 		//(optional)
 		#include "pthread.h"
@@ -61,6 +63,9 @@
 
 //	allocate memory on the heap, and add it to the list
 	void* lnklst_allocate(struct lnklst_struct *lst, size_t size);
+
+//	resize an existing allocation, without breaking it's links
+	void* lnklst_reallocate(struct lnklst_struct *lst, void* allocation, size_t size);
 
 //	free memory from the heap and remove it from the list
 	void lnklst_free(struct lnklst_struct *lst, void* allocation);
@@ -188,6 +193,29 @@ void* lnklst_allocate(struct lnklst_struct *lst, size_t size)
 		lnklst_mutex_unlock(&lst->mutex);
 	};
 
+	return retval;
+}
+
+void* lnklst_reallocate(struct lnklst_struct *lst, void* allocation, size_t size)
+{
+	struct header_struct  *target;
+	void* retval = NULL;
+
+	if(lst)
+	{
+		lnklst_mutex_lock(&lst->mutex);
+		target = container_of(allocation, struct header_struct, allocation);
+
+		target = lnklst_platform_realloc(target, sizeof(struct header_struct) + size);
+		//update the *before link in the header after this one
+		target->after->before = target;
+		//if there was a header before this one
+		if(target->before)
+    	    //update the *after link in the header before this one
+    	    target->before->after = target;
+		retval = &target->allocation;
+		lnklst_mutex_unlock(&lst->mutex);
+	};
 	return retval;
 }
 

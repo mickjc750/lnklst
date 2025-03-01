@@ -37,6 +37,7 @@
     TEST test_lnklst_create(void);
     TEST test_lnklst_destroy(void);
     TEST test_lnklst_allocate(void);
+    TEST test_lnklst_reallocate(void);
     TEST test_lnklst_free(void);
     TEST test_lnklst_before(void);
     TEST test_lnklst_after(void);
@@ -71,6 +72,7 @@ SUITE(suite_all_tests)
     RUN_TEST(test_lnklst_create);
     RUN_TEST(test_lnklst_destroy);
     RUN_TEST(test_lnklst_allocate);
+    RUN_TEST(test_lnklst_reallocate);
     RUN_TEST(test_lnklst_free);
     RUN_TEST(test_lnklst_before);
     RUN_TEST(test_lnklst_after);
@@ -156,6 +158,53 @@ TEST test_lnklst_allocate(void)
     ASSERT(test_allocation_count == 2);
     ASSERT(test_lock_count == 4);
     ASSERT(test_unlock_count == 4);
+    lnklst_destroy(&list);
+
+    PASS();
+}
+
+TEST test_lnklst_reallocate(void)
+{
+    struct lnklst_struct *list;
+    void *a, *b, *c;
+ 
+    // test reallocating the middle of 3 allocations
+    list = lnklst_create();
+ 
+    a = lnklst_allocate(list, 8);
+    b = lnklst_allocate(list, 8);
+    c = lnklst_allocate(list, 8);
+
+    reset_stats();
+    strcpy(b, "1234567");
+    b = lnklst_reallocate(list, b, 524288);
+    ASSERT(!strcmp(b, "1234567"));
+
+    ASSERT(lnklst_count(list) == 3);        //(also locks)
+    ASSERT(test_lock_count == 2);
+    ASSERT(test_unlock_count == 2);
+
+    ASSERT(lnklst_after(list, a) == b);
+    ASSERT(lnklst_before(list, c) == b);
+
+    lnklst_destroy(&list);
+ 
+
+    // test reallocating a single allocations (so there is no before link)
+    list = lnklst_create();
+    a = lnklst_allocate(list, 8);
+
+    reset_stats();
+    strcpy(a, "1234567");
+    a = lnklst_reallocate(list, a, 524288);
+
+    ASSERT(!strcmp(a, "1234567"));
+    ASSERT(lnklst_count(list) == 1);        //(also locks)
+    ASSERT(test_lock_count == 2);
+    ASSERT(test_unlock_count == 2);
+
+    ASSERT(lnklst_index(list, 0) == a);
+
     lnklst_destroy(&list);
 
     PASS();
